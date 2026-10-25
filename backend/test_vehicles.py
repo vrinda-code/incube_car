@@ -82,7 +82,7 @@ def test_list_vehicles_without_token_rejected():
 def test_list_vehicles_with_fake_token_rejected():
     response = client.get(
         "/api/vehicles",
-        headers={"Authorization": "Bearer fake.invalid.token"},
+        headers={"Authorization": "Bearer fake-token"},
     )
 
     assert response.status_code == 401
@@ -105,3 +105,47 @@ def test_list_vehicles_with_valid_token():
     assert isinstance(vehicles, list)
     assert len(vehicles) == 1
     assert vehicles[0]["model"] == "Camry"
+
+NEW_CAR = {
+    "make": "Tata",
+    "model": "Nexon EV",
+    "category": "suv",
+    "fuel_type": "electric",
+    "year": 2024,
+    "color": "Blue",
+    "price": 1600000,
+    "quantity": 4,
+}
+
+
+def test_add_vehicle():
+    token = get_token()
+    response = client.post(
+        "/api/vehicles", json=NEW_CAR, headers={"Authorization": f"Bearer {token}"}
+    )
+    assert response.status_code == 201
+    assert response.json()["model"] == "Nexon EV"
+    assert "id" in response.json()
+
+
+def test_add_vehicle_without_token_rejected():
+    response = client.post("/api/vehicles", json=NEW_CAR)
+    assert response.status_code == 401
+
+
+def test_add_vehicle_invalid_category_rejected():
+    token = get_token()
+    bad_car = {**NEW_CAR, "category": "spaceship"}
+    response = client.post(
+        "/api/vehicles", json=bad_car, headers={"Authorization": f"Bearer {token}"}
+    )
+    assert response.status_code == 422
+
+
+def test_add_vehicle_negative_price_rejected():
+    token = get_token()
+    bad_car = {**NEW_CAR, "price": -100}
+    response = client.post(
+        "/api/vehicles", json=bad_car, headers={"Authorization": f"Bearer {token}"}
+    )
+    assert response.status_code == 422
