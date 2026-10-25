@@ -1,6 +1,6 @@
-import sqlite3
+import database
 
-conn = sqlite3.connect("../database/dealership.db")  # creates the file if it doesn't exist
+conn = database.get_connection()
 
 # 1. Create the tables (the structure)
 conn.execute("""
