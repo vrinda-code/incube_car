@@ -168,3 +168,20 @@ def update_vehicle(vehicle_id: int, data: VehicleRequest, user=Depends(get_curre
     if cursor.rowcount == 0:  # no row matched this id
         raise HTTPException(status_code=404, detail="Vehicle not found")
     return {"id": vehicle_id, **data.model_dump()}
+
+def get_admin_user(user=Depends(get_current_user)):
+    # runs the normal token check first, then also requires the admin role
+    if user["role"] != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    return user
+
+
+@app.delete("/api/vehicles/{vehicle_id}")
+def delete_vehicle(vehicle_id: int, user=Depends(get_admin_user)):
+    conn = database.get_connection()
+    cursor = conn.execute("DELETE FROM vehicles WHERE id = ?", (vehicle_id,))
+    conn.commit()
+    conn.close()
+    if cursor.rowcount == 0:
+        raise HTTPException(status_code=404, detail="Vehicle not found")
+    return {"message": "Vehicle deleted"}
