@@ -70,3 +70,38 @@ def test_register_does_not_store_password_as_plaintext():
 
     assert row is not None
     assert row[0] != password
+
+
+def test_login_returns_token():
+    credentials = {"email": "a@test.com", "password": "secret123"}
+    register_response = client.post("/api/auth/register", json=credentials)
+    assert register_response.status_code == 201
+
+    response = client.post("/api/auth/login", json=credentials)
+
+    assert response.status_code == 200
+    assert response.json()["access_token"]
+
+
+def test_login_rejects_wrong_password():
+    register_response = client.post(
+        "/api/auth/register",
+        json={"email": "a@test.com", "password": "secret123"},
+    )
+    assert register_response.status_code == 201
+
+    response = client.post(
+        "/api/auth/login",
+        json={"email": "a@test.com", "password": "incorrect"},
+    )
+
+    assert response.status_code == 401
+
+
+def test_login_rejects_unknown_email():
+    response = client.post(
+        "/api/auth/login",
+        json={"email": "unknown@test.com", "password": "secret123"},
+    )
+
+    assert response.status_code == 401
