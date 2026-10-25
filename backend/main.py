@@ -1,7 +1,7 @@
 import hashlib
 import os
 import sqlite3
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, Header, HTTPException
 from pydantic import BaseModel, Field
 import database
 import jwt
@@ -71,3 +71,22 @@ def login(data: LoginRequest):
         algorithm="HS256",
     )
     return {"access_token": token}
+
+def get_current_user(authorization: str = Header(default=None)):
+    # The frontend sends the token in a header: "Authorization: Bearer <token>"
+    if authorization is None or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Missing token")
+    token = authorization[len("Bearer "):]
+    try:
+        return jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+    except jwt.InvalidTokenError:  # fake, tampered, or expired token
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+
+
+@app.get("/api/vehicles")
+def list_vehicles(user=Depends(get_current_user)):
+    conn = database.get_connection()
+    conn.row_factory = sqlite3.Row  # lets us turn each row into a dict
+    rows = conn.execute("SELECT * FROM vehicles").fetchall()
+    conn.close()
+    return [dict(row) for row in rows]

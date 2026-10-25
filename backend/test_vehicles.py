@@ -13,12 +13,14 @@ client = TestClient(app)
 def get_token():
     """Register and log in a user, returning a valid access token."""
     username = "vehicle_test_user"
+    email = "vehicle_test_user@example.com"
     password = "TestPass123!"
 
     register_response = client.post(
         "/api/auth/register",
         json={
             "username": username,
+            "email": email,
             "password": password,
         },
     )
@@ -30,7 +32,7 @@ def get_token():
     login_response = client.post(
         "/api/auth/login",
         json={
-            "username": username,
+            "email": email,
             "password": password,
         },
     )
