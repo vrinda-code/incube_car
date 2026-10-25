@@ -220,3 +220,43 @@ def test_search_without_token_rejected():
 def test_search_min_price_above_max_price_rejected():
     response = search(min_price=5000, max_price=100)
     assert response.status_code == 422
+
+def test_update_vehicle():
+    add_car()  # the test database starts empty, so this car gets id 1
+    token = get_token()
+    headers = {"Authorization": f"Bearer {token}"}
+    updated = {**NEW_CAR, "price": 1500000, "quantity": 9}
+
+    response = client.put("/api/vehicles/1", json=updated, headers=headers)
+    assert response.status_code == 200
+    assert response.json()["price"] == 1500000
+
+    # check the change was really saved, not just echoed back
+    cars = client.get("/api/vehicles", headers=headers).json()
+    assert cars[0]["price"] == 1500000
+    assert cars[0]["quantity"] == 9
+
+
+def test_update_unknown_vehicle_returns_404():
+    token = get_token()
+    response = client.put(
+        "/api/vehicles/999", json=NEW_CAR, headers={"Authorization": f"Bearer {token}"}
+    )
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Vehicle not found"
+
+
+def test_update_vehicle_without_token_rejected():
+    add_car()
+    response = client.put("/api/vehicles/1", json=NEW_CAR)
+    assert response.status_code == 401
+
+
+def test_update_vehicle_invalid_data_rejected():
+    add_car()
+    token = get_token()
+    bad_car = {**NEW_CAR, "price": -5}
+    response = client.put(
+        "/api/vehicles/1", json=bad_car, headers={"Authorization": f"Bearer {token}"}
+    )
+    assert response.status_code == 422
