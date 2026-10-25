@@ -1,4 +1,4 @@
-import { createContext, useContext, useState } from 'react'
+import { createContext, useCallback, useContext, useState } from 'react'
 import { loginUser } from './api'
 
 const AuthContext = createContext(null)
@@ -20,10 +20,10 @@ export function AuthProvider({ children }) {
     setToken(data.access_token)
   }
 
-  function logout() {
+  const logout = useCallback(() => {
     localStorage.removeItem('token')
     setToken(null)
-  }
+  }, [])
 
   const role = token ? readRole(token) : null
 

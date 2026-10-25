@@ -6,8 +6,14 @@ export default function Navbar() {
   return (
     <header className="bg-white shadow">
       <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
-        <h1 className="text-xl font-bold text-indigo-600">Car Dealership</h1>
+        <h1 className="text-2xl font-bold text-indigo-600">Car Dealership</h1>
         <div className="flex items-center gap-3">
+          <a
+            href="#contact-us"
+            className="text-sm font-medium text-indigo-600 hover:text-indigo-800"
+          >
+            Contact Us
+          </a>
           <span className="text-xs uppercase tracking-wide bg-slate-100 text-slate-600 rounded px-2 py-1">
             {role}
           </span>

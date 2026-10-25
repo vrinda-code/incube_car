@@ -28,5 +28,15 @@ export const loginUser = (email, password) =>
 
 export const getVehicles = (token) => request('/api/vehicles', { token })
 
+export const searchVehicles = (token, filters) => {
+  const params = new URLSearchParams()
+
+  Object.entries(filters).forEach(([key, value]) => {
+    if (value !== '') params.set(key, value)
+  })
+
+  return request(`/api/vehicles/search?${params.toString()}`, { token })
+}
+
 export const purchaseVehicle = (token, id) =>
   request(`/api/vehicles/${id}/purchase`, { method: 'POST', token })

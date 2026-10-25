@@ -17,12 +17,21 @@ export default function AuthForm({ title, buttonText, onSubmit, footer }) {
   }
 
   return (
-    <div className="min-h-screen bg-slate-100 flex items-center justify-center px-4">
+    <div
+      className="relative flex min-h-screen items-center justify-center bg-cover bg-center px-4 py-24"
+      style={{
+        backgroundImage:
+          "linear-gradient(rgba(15, 23, 42, 0.35), rgba(15, 23, 42, 0.5)), url('/image.jpg')",
+      }}
+    >
+      <h1 className="absolute left-6 top-6 text-3xl font-extrabold tracking-wide text-white drop-shadow-lg sm:left-10 sm:top-8 sm:text-5xl">
+        CAR DELEARSHIP
+      </h1>
       <form
         onSubmit={handleSubmit}
-        className="w-full max-w-sm bg-white rounded-xl shadow p-6 space-y-4"
+        className="w-full max-w-sm space-y-4 rounded-xl border border-white/30 bg-white/40 p-6 shadow-2xl backdrop-blur-md"
       >
-        <h1 className="text-2xl font-bold text-slate-800">{title}</h1>
+        <h2 className="text-2xl font-bold text-slate-800">{title}</h2>
         {error && <p className="text-sm text-red-600">{error}</p>}
         <input
           type="email"
