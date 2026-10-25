@@ -116,3 +116,40 @@ def add_vehicle(data: VehicleRequest, user=Depends(get_current_user)):
     vehicle_id = cursor.lastrowid
     conn.close()
     return {"id": vehicle_id, **data.model_dump()}
+
+@app.get("/api/vehicles/search")
+def search_vehicles(
+    make: str = None,
+    model: str = None,
+    category: str = None,
+    min_price: int = None,
+    max_price: int = None,
+    user=Depends(get_current_user),
+):
+    if min_price is not None and max_price is not None and min_price > max_price:
+        raise HTTPException(status_code=422, detail="min_price cannot be greater than max_price")
+
+    query = "SELECT * FROM vehicles WHERE 1=1"  # "1=1" is always true, so we can add "AND ..." freely
+    params = []
+
+    if make:
+        query += " AND make LIKE ?"
+        params.append(f"%{make}%")
+    if model:
+        query += " AND model LIKE ?"
+        params.append(f"%{model}%")
+    if category:
+        query += " AND category = ?"
+        params.append(category)
+    if min_price is not None:
+        query += " AND price >= ?"
+        params.append(min_price)
+    if max_price is not None:
+        query += " AND price <= ?"
+        params.append(max_price)
+
+    conn = database.get_connection()
+    conn.row_factory = sqlite3.Row
+    rows = conn.execute(query, params).fetchall()
+    conn.close()
+    return [dict(row) for row in rows]
