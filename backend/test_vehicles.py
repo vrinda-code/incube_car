@@ -260,3 +260,46 @@ def test_update_vehicle_invalid_data_rejected():
         "/api/vehicles/1", json=bad_car, headers={"Authorization": f"Bearer {token}"}
     )
     assert response.status_code == 422
+
+def get_admin_token():
+    body = {"email": "admin@test.com", "password": "secret123"}
+    client.post("/api/auth/register", json=body)
+    # new users are always "user", so promote this one directly in the database
+    conn = sqlite3.connect(database.DB_PATH)
+    conn.execute("UPDATE users SET role = 'admin' WHERE email = ?", (body["email"],))
+    conn.commit()
+    conn.close()
+    # log in AFTER promoting, because the role is written into the token at login
+    return client.post("/api/auth/login", json=body).json()["access_token"]
+
+
+def test_admin_can_delete_vehicle():
+    add_car()
+    token = get_admin_token()
+    headers = {"Authorization": f"Bearer {token}"}
+
+    response = client.delete("/api/vehicles/1", headers=headers)
+    assert response.status_code == 200
+
+    # check it is really gone
+    assert client.get("/api/vehicles", headers=headers).json() == []
+
+
+def test_normal_user_cannot_delete_vehicle():
+    add_car()
+    token = get_token()
+    response = client.delete("/api/vehicles/1", headers={"Authorization": f"Bearer {token}"})
+    assert response.status_code == 403
+
+
+def test_delete_without_token_rejected():
+    add_car()
+    response = client.delete("/api/vehicles/1")
+    assert response.status_code == 401
+
+
+def test_delete_unknown_vehicle_returns_404():
+    token = get_admin_token()
+    response = client.delete("/api/vehicles/999", headers={"Authorization": f"Bearer {token}"})
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Vehicle not found"
