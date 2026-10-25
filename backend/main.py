@@ -153,3 +153,18 @@ def search_vehicles(
     rows = conn.execute(query, params).fetchall()
     conn.close()
     return [dict(row) for row in rows]
+
+@app.put("/api/vehicles/{vehicle_id}")
+def update_vehicle(vehicle_id: int, data: VehicleRequest, user=Depends(get_current_user)):
+    conn = database.get_connection()
+    cursor = conn.execute(
+        "UPDATE vehicles SET make=?, model=?, category=?, fuel_type=?, "
+        "year=?, color=?, price=?, quantity=? WHERE id=?",
+        (data.make, data.model, data.category, data.fuel_type,
+         data.year, data.color, data.price, data.quantity, vehicle_id),
+    )
+    conn.commit()
+    conn.close()
+    if cursor.rowcount == 0:  # no row matched this id
+        raise HTTPException(status_code=404, detail="Vehicle not found")
+    return {"id": vehicle_id, **data.model_dump()}
