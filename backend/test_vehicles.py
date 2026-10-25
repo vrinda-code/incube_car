@@ -149,3 +149,74 @@ def test_add_vehicle_negative_price_rejected():
         "/api/vehicles", json=bad_car, headers={"Authorization": f"Bearer {token}"}
     )
     assert response.status_code == 422
+
+def insert_car(make, model, category, price):
+    conn = sqlite3.connect(database.DB_PATH)
+    conn.execute(
+        "INSERT INTO vehicles (make, model, category, fuel_type, year, color, price, quantity) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        (make, model, category, "petrol", 2023, "Red", price, 3),
+    )
+    conn.commit()
+    conn.close()
+
+
+def seed_search_cars():
+    insert_car("Honda", "City", "sedan", 1250000)
+    insert_car("Toyota", "Fortuner", "suv", 3800000)
+    insert_car("Mahindra", "XUV700", "suv", 2200000)
+    insert_car("Maruti Suzuki", "Swift", "hatchback", 750000)
+
+
+def search(**filters):
+    token = get_token()
+    return client.get(
+        "/api/vehicles/search",
+        params=filters,
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+
+def test_search_by_make_ignores_case():
+    seed_search_cars()
+    response = search(make="honda")
+    assert response.status_code == 200
+    assert len(response.json()) == 1
+    assert response.json()[0]["model"] == "City"
+
+
+def test_search_by_category():
+    seed_search_cars()
+    response = search(category="suv")
+    assert len(response.json()) == 2
+
+
+def test_search_by_price_range():
+    seed_search_cars()
+    response = search(min_price=1000000, max_price=2500000)
+    models = {car["model"] for car in response.json()}
+    assert models == {"City", "XUV700"}
+
+
+def test_search_with_combined_filters():
+    seed_search_cars()
+    response = search(category="suv", max_price=2500000)
+    assert len(response.json()) == 1
+    assert response.json()[0]["model"] == "XUV700"
+
+
+def test_search_no_match_returns_empty_list():
+    seed_search_cars()
+    response = search(make="Ferrari")
+    assert response.status_code == 200
+    assert response.json() == []
+
+
+def test_search_without_token_rejected():
+    response = client.get("/api/vehicles/search")
+    assert response.status_code == 401
+
+
+def test_search_min_price_above_max_price_rejected():
+    response = search(min_price=5000, max_price=100)
+    assert response.status_code == 422
