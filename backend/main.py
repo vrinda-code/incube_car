@@ -1,7 +1,8 @@
 import hashlib
 import os
-from fastapi import FastAPI
-from pydantic import BaseModel
+import sqlite3
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel, Field
 import database
 
 app = FastAPI()
@@ -9,7 +10,7 @@ app = FastAPI()
 
 class RegisterRequest(BaseModel):
     email: str
-    password: str
+    password: str = Field(..., min_length=8)  
 
 
 def hash_password(password):
@@ -21,11 +22,14 @@ def hash_password(password):
 @app.post("/api/auth/register", status_code=201)
 def register(data: RegisterRequest):
     conn = database.get_connection()
-    cursor = conn.execute(
-        "INSERT INTO users (email, hashed_password) VALUES (?, ?)",
-        (data.email, hash_password(data.password)),
-    )
-    conn.commit()
-    user_id = cursor.lastrowid  # the id the database gave the new user
-    conn.close()
-    return {"id": user_id, "email": data.email}
+    try:
+        cursor = conn.execute(
+            "INSERT INTO users (email, hashed_password) VALUES (?, ?)",
+            (data.email, hash_password(data.password)),
+        )
+        conn.commit()
+    except sqlite3.IntegrityError:  # the email column is UNIQUE, so a repeat fails here
+        raise HTTPException(status_code=409, detail="Email already registered")
+    finally:
+        conn.close()
+    return {"id": cursor.lastrowid, "email": data.email}
