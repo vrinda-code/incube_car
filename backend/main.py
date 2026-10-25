@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field
 import database
 import jwt
 from datetime import datetime, timedelta, timezone
+from typing import Literal
 
 app = FastAPI()
 
@@ -90,3 +91,28 @@ def list_vehicles(user=Depends(get_current_user)):
     rows = conn.execute("SELECT * FROM vehicles").fetchall()
     conn.close()
     return [dict(row) for row in rows]
+
+class VehicleRequest(BaseModel):
+    make: str
+    model: str
+    category: Literal["sedan", "hatchback", "suv", "sports"]
+    fuel_type: Literal["petrol", "diesel", "electric"]
+    year: int
+    color: str
+    price: int = Field(gt=0)
+    quantity: int = Field(ge=0)
+
+
+@app.post("/api/vehicles", status_code=201)
+def add_vehicle(data: VehicleRequest, user=Depends(get_current_user)):
+    conn = database.get_connection()
+    cursor = conn.execute(
+        "INSERT INTO vehicles (make, model, category, fuel_type, year, color, price, quantity) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        (data.make, data.model, data.category, data.fuel_type,
+         data.year, data.color, data.price, data.quantity),
+    )
+    conn.commit()
+    vehicle_id = cursor.lastrowid
+    conn.close()
+    return {"id": vehicle_id, **data.model_dump()}
