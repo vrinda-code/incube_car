@@ -47,7 +47,7 @@ def get_token():
     return token
 
 
-def add_car():
+def add_car(quantity=5):
     """Insert a vehicle directly into the isolated test database."""
     with sqlite3.connect(database.DB_PATH) as conn:
         cursor = conn.execute(
@@ -66,7 +66,7 @@ def add_car():
                 2024,
                 "White",
                 2800000,
-                5,
+                quantity,
             ),
         )
         conn.commit()

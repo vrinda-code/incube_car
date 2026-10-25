@@ -165,12 +165,12 @@ def update_vehicle(vehicle_id: int, data: VehicleRequest, user=Depends(get_curre
     )
     conn.commit()
     conn.close()
-    if cursor.rowcount == 0:  # no row matched this id
+    if cursor.rowcount == 0: 
         raise HTTPException(status_code=404, detail="Vehicle not found")
     return {"id": vehicle_id, **data.model_dump()}
 
 def get_admin_user(user=Depends(get_current_user)):
-    # runs the normal token check first, then also requires the admin role
+    
     if user["role"] != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
     return user
@@ -185,3 +185,45 @@ def delete_vehicle(vehicle_id: int, user=Depends(get_admin_user)):
     if cursor.rowcount == 0:
         raise HTTPException(status_code=404, detail="Vehicle not found")
     return {"message": "Vehicle deleted"}
+
+@app.post("/api/vehicles/{vehicle_id}/purchase")
+def purchase_vehicle(vehicle_id: int, user=Depends(get_current_user)):
+    conn = database.get_connection()
+    # only decreases if quantity is above 0, so it can never go negative
+    cursor = conn.execute(
+        "UPDATE vehicles SET quantity = quantity - 1 WHERE id = ? AND quantity > 0",
+        (vehicle_id,),
+    )
+    conn.commit()
+
+    if cursor.rowcount == 0:
+       
+        exists = conn.execute("SELECT 1 FROM vehicles WHERE id = ?", (vehicle_id,)).fetchone()
+        conn.close()
+        if exists is None:
+            raise HTTPException(status_code=404, detail="Vehicle not found")
+        raise HTTPException(status_code=409, detail="Out of stock")
+
+    quantity = conn.execute("SELECT quantity FROM vehicles WHERE id = ?", (vehicle_id,)).fetchone()[0]
+    conn.close()
+    return {"id": vehicle_id, "quantity": quantity}
+
+
+class RestockRequest(BaseModel):
+    amount: int = Field(gt=0)
+
+
+@app.post("/api/vehicles/{vehicle_id}/restock")
+def restock_vehicle(vehicle_id: int, data: RestockRequest, user=Depends(get_admin_user)):
+    conn = database.get_connection()
+    cursor = conn.execute(
+        "UPDATE vehicles SET quantity = quantity + ? WHERE id = ?",
+        (data.amount, vehicle_id),
+    )
+    conn.commit()
+    if cursor.rowcount == 0:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Vehicle not found")
+    quantity = conn.execute("SELECT quantity FROM vehicles WHERE id = ?", (vehicle_id,)).fetchone()[0]
+    conn.close()
+    return {"id": vehicle_id, "quantity": quantity}
