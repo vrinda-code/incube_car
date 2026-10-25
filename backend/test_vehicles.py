@@ -303,3 +303,93 @@ def test_delete_unknown_vehicle_returns_404():
     response = client.delete("/api/vehicles/999", headers={"Authorization": f"Bearer {token}"})
     assert response.status_code == 404
     assert response.json()["detail"] == "Vehicle not found"
+
+def test_purchase_reduces_quantity():
+    add_car(quantity=3)
+    token = get_token()
+    headers = {"Authorization": f"Bearer {token}"}
+
+    response = client.post("/api/vehicles/1/purchase", headers=headers)
+    assert response.status_code == 200
+    assert response.json()["quantity"] == 2
+
+    # check it was really saved
+    cars = client.get("/api/vehicles", headers=headers).json()
+    assert cars[0]["quantity"] == 2
+
+
+def test_purchase_out_of_stock_rejected():
+    add_car(quantity=1)
+    token = get_token()
+    headers = {"Authorization": f"Bearer {token}"}
+
+    first = client.post("/api/vehicles/1/purchase", headers=headers)
+    assert first.status_code == 200  # buys the last car
+
+    second = client.post("/api/vehicles/1/purchase", headers=headers)
+    assert second.status_code == 409
+    assert second.json()["detail"] == "Out of stock"
+
+    # quantity must stay at 0, never go negative
+    cars = client.get("/api/vehicles", headers=headers).json()
+    assert cars[0]["quantity"] == 0
+
+
+def test_purchase_without_token_rejected():
+    add_car()
+    response = client.post("/api/vehicles/1/purchase")
+    assert response.status_code == 401
+
+
+def test_purchase_unknown_vehicle_returns_404():
+    token = get_token()
+    response = client.post(
+        "/api/vehicles/999/purchase", headers={"Authorization": f"Bearer {token}"}
+    )
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Vehicle not found"
+
+
+def test_admin_can_restock():
+    add_car(quantity=3)
+    token = get_admin_token()
+    response = client.post(
+        "/api/vehicles/1/restock",
+        json={"amount": 5},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 200
+    assert response.json()["quantity"] == 8
+
+
+def test_normal_user_cannot_restock():
+    add_car()
+    token = get_token()
+    response = client.post(
+        "/api/vehicles/1/restock",
+        json={"amount": 5},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 403
+
+
+def test_restock_invalid_amount_rejected():
+    add_car()
+    token = get_admin_token()
+    response = client.post(
+        "/api/vehicles/1/restock",
+        json={"amount": 0},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 422
+
+
+def test_restock_unknown_vehicle_returns_404():
+    token = get_admin_token()
+    response = client.post(
+        "/api/vehicles/999/restock",
+        json={"amount": 5},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Vehicle not found"
