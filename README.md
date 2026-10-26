@@ -46,19 +46,16 @@ The goal of this project is to build a small but realistic inventory-and-sales s
 ## Screenshots
 
 ### Login page
-![Login page](docs/screenshots/01-login.png)
 <img width="1913" height="963" alt="Screenshot 2026-10-25 214934" src="https://github.com/user-attachments/assets/e630613d-2914-4e7f-affd-5a5effa78bf1" />
 
 
 ### Dashboard: search form and vehicle inventory
-![Dashboard with search form and vehicle cards](docs/screenshots/02-dashboard.png)
 <img width="1897" height="896" alt="Screenshot 2026-10-25 214945" src="https://github.com/user-attachments/assets/7888f26f-660f-4569-bdf1-bde6e8ae36ee" />
 
 
 ### Search and filter in action
 Filtering by make "Toyota", category "Sedan" and minimum price 0 returns a single matching car. The contact footer is visible below the results.
 
-![Filtered search results and contact footer](docs/screenshots/03-search-filter.png)
 <img width="1908" height="855" alt="Screenshot 2026-10-25 215007" src="https://github.com/user-attachments/assets/aa0f8cf2-2feb-42c0-96e1-a90151c4c9b7" />
 
 
@@ -415,7 +412,7 @@ The git history shows the backend was built **test-first**: each feature starts 
 
 ## My AI Usage
 
-Full chat history is in [PROMPTS.md](PROMPTS.md).
+Full chat history is in [PROMPTS.md](PROMPTS.md).https://chatgpt.com/c/6adda046-e894-83ee-8661-f67cc2366452
 
 ### AI tools used
 
